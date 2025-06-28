@@ -147,28 +147,7 @@
         let offsetX = 0;
         let offsetY = 0;
 
-        // --- ORIGINAL IMAGE FINDING & INITIALIZATION LOGIC (RESTORED) ---
-        function generateImagePaths() {
-            const extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-            const patterns = [];
-            for (let i = 1; i <= 10; i++) {
-                patterns.push(i.toString(), 'image' + i, 'picture' + i, 'photo' + i, 'img' + i, 'pic' + i);
-            }
-            for (let i = 1; i <= 20; i++) {
-                const num = i.toString().padStart(4, '0');
-                patterns.push('IMG_' + num, 'DSC_' + num);
-            }
-            patterns.push('1', '2', '3', '4', '5', '6', '7', '8', 'image', 'picture', 'photo', 'img', 'pic');
-            
-            const paths = [];
-            for (const pattern of patterns) {
-                for (const ext of extensions) {
-                    paths.push(`./resources/${pattern}.${ext}`);
-                }
-            }
-            return paths;
-        }
-
+        // SIMPLIFIED: Just check for 1.jpg through 6.jpg
         function testImageExists(src) {
             return new Promise(resolve => {
                 const img = new Image();
@@ -179,14 +158,21 @@
         }
 
         async function findAvailableImages() {
-            const possiblePaths = generateImagePaths();
             const foundImages = [];
-            for (const path of possiblePaths) {
-                if (await testImageExists(path)) {
-                    foundImages.push(path);
+            
+            // Simply check for 1.jpg, 2.jpg, 3.jpg, 4.jpg, 5.jpg, 6.jpg
+            for (let i = 1; i <= 6; i++) {
+                const imagePath = `./resources/${i}.JPG`;
+                console.log(`Checking for image: ${imagePath}`);
+                
+                if (await testImageExists(imagePath)) {
+                    foundImages.push(imagePath);
+                    console.log(`Found: ${imagePath}`);
+                } else {
+                    console.log(`Not found: ${imagePath}`);
                 }
-                if (foundImages.length >= 6) break;
             }
+            
             return foundImages;
         }
 
@@ -194,6 +180,9 @@
             try {
                 showLoadingMessage();
                 pictureFiles = await findAvailableImages();
+                
+                console.log(`Total images found: ${pictureFiles.length}`);
+                console.log('Image paths:', pictureFiles);
                 
                 if (pictureFiles.length === 0) {
                     showNoImagesMessage();
@@ -214,7 +203,6 @@
                     }
                 });
                 
-                console.log(`Loaded ${pictureFiles.length} images:`, pictureFiles);
             } catch (error) {
                 console.error('Error loading images:', error);
                 showNoImagesMessage();
@@ -233,14 +221,11 @@
             const grid = document.getElementById('grid');
             grid.innerHTML = `<div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px;">
                 <h2 style="margin-bottom: 15px; font-size: clamp(1.2rem, 3vw, 2rem);">No Images Found</h2>
-                <p style="margin-bottom: 10px; font-size: clamp(0.9rem, 2vw, 1.1rem);">Please add up to 6 images to the "resources" folder.</p>
-                <p style="font-size: clamp(0.8rem, 1.8vw, 1rem); opacity: 0.8; margin-bottom: 10px;">Try naming them: 1.jpg, 2.png, image1.jpg, etc.</p>
+                <p style="margin-bottom: 10px; font-size: clamp(0.9rem, 2vw, 1.1rem);">Please add images named 1.jpg, 2.jpg, 3.jpg, 4.jpg, 5.jpg, and 6.jpg to the "resources" folder.</p>
+                <p style="font-size: clamp(0.8rem, 1.8vw, 1rem); opacity: 0.8; margin-bottom: 10px;">Check the browser console (F12) for debugging info.</p>
                 <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); border: none; border-radius: 20px; color: white; cursor: pointer;">Refresh</button>
             </div>`;
         }
-
-
-        // --- CLONE-BASED DRAG AND DROP LOGIC (WORKING) ---
 
         function createPicture(src, container) {
             const img = document.createElement('img');
@@ -363,7 +348,7 @@
             });
         }
 
-        // Initialize when page loads, calling the correct restored function
+        // Initialize when page loads
         window.addEventListener('load', initializePictures);
     </script>
 </body>
