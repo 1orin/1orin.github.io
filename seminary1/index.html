@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Picture Grid</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden; /* Prevent scrollbars from appearing from the clone */
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .title {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(5px, 1vmin, 15px);
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Responsive grid styles remain the same */
+        @media (min-aspect-ratio: 4/3) { .grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); } }
+        @media (max-aspect-ratio: 4/3) and (min-aspect-ratio: 3/4) { .grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); } }
+        @media (max-aspect-ratio: 3/4) { .grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); } }
+        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; grid-template-rows: repeat(6, 1fr); } }
+
+        .grid-square {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: clamp(8px, 2vmin, 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            min-height: 80px;
+        }
+        
+        .grid-square.drag-over {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+            transform: scale(1.05);
+        }
+
+        .square-number {
+            font-size: clamp(1.5rem, 5vmin, 4rem);
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.4);
+            user-select: none;
+        }
+
+        .picture {
+            position: absolute;
+            width: 95%;
+            height: 95%;
+            object-fit: contain;
+            border-radius: 8px;
+            cursor: grab;
+            transition: opacity 0.2s ease; /* Transition for hiding/showing */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .picture.dragging-source {
+            opacity: 0.4; /* Style for the hidden original picture */
+            cursor: grabbing;
+        }
+
+        /* This is the style for the CLONE we drag */
+        .picture-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            transform: scale(1.1) rotate(5deg);
+            transition: none !important; /* Ensure no transitions apply to the clone */
+        }
+
+        .controls {
+            margin-top: clamp(10px, 2vh, 20px);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .shuffle-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: clamp(8px, 2vmin, 15px) clamp(16px, 4vmin, 30px);
+            border-radius: 25px;
+            font-size: clamp(0.8rem, 2.5vmin, 1.2rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Picture Puzzle</h1>
+        <div class="grid" id="grid">
+            <div class="grid-square" data-square="1"><span class="square-number">1</span></div>
+            <div class="grid-square" data-square="2"><span class="square-number">2</span></div>
+            <div class="grid-square" data-square="3"><span class="square-number">3</span></div>
+            <div class="grid-square" data-square="4"><span class="square-number">4</span></div>
+            <div class="grid-square" data-square="5"><span class="square-number">5</span></div>
+            <div class="grid-square" data-square="6"><span class="square-number">6</span></div>
+        </div>
+        <div class="controls">
+            <button class="shuffle-btn" onclick="shufflePictures()">Shuffle Pictures</button>
+        </div>
+    </div>
+
+    <script>
+        let pictureFiles = [];
+        let originalElement = null;
+        let dragClone = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // --- ORIGINAL IMAGE FINDING & INITIALIZATION LOGIC (RESTORED) ---
+        function generateImagePaths() {
+            const extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+            const patterns = [];
+            for (let i = 1; i <= 10; i++) {
+                patterns.push(i.toString(), 'image' + i, 'picture' + i, 'photo' + i, 'img' + i, 'pic' + i);
+            }
+            for (let i = 1; i <= 20; i++) {
+                const num = i.toString().padStart(4, '0');
+                patterns.push('IMG_' + num, 'DSC_' + num);
+            }
+            patterns.push('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'image', 'picture', 'photo', 'img', 'pic');
+            
+            const paths = [];
+            for (const pattern of patterns) {
+                for (const ext of extensions) {
+                    paths.push(`resources/${pattern}.${ext}`);
+                }
+            }
+            return paths;
+        }
+
+        function testImageExists(src) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = src;
+            });
+        }
+
+        async function findAvailableImages() {
+            const possiblePaths = generateImagePaths();
+            const foundImages = [];
+            for (const path of possiblePaths) {
+                if (await testImageExists(path)) {
+                    foundImages.push(path);
+                }
+                if (foundImages.length >= 6) break;
+            }
+            return foundImages;
+        }
+
+        async function initializePictures() {
+            try {
+                showLoadingMessage();
+                pictureFiles = await findAvailableImages();
+                
+                if (pictureFiles.length === 0) {
+                    showNoImagesMessage();
+                    return;
+                }
+
+                const squares = document.querySelectorAll('.grid-square');
+                squares.forEach(square => {
+                    const pic = square.querySelector('.picture');
+                    if (pic) pic.remove(); // Clear previous pictures if any
+                });
+
+                const shuffledPictures = [...pictureFiles].sort(() => Math.random() - 0.5);
+                
+                squares.forEach((square, index) => {
+                    if (shuffledPictures[index]) {
+                        createPicture(shuffledPictures[index], square);
+                    }
+                });
+                
+                console.log(`Loaded ${pictureFiles.length} images:`, pictureFiles);
+            } catch (error) {
+                console.error('Error loading images:', error);
+                showNoImagesMessage();
+            }
+        }
+
+        function showLoadingMessage() {
+            const grid = document.getElementById('grid');
+            const square = grid.querySelector('.grid-square');
+            if (square) {
+                square.innerHTML = '<div style="color: white; text-align: center; font-size: clamp(0.8rem, 2vw, 1rem);">Loading images...</div>';
+            }
+        }
+
+        function showNoImagesMessage() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = `<div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px;">
+                <h2 style="margin-bottom: 15px; font-size: clamp(1.2rem, 3vw, 2rem);">No Images Found</h2>
+                <p style="margin-bottom: 10px; font-size: clamp(0.9rem, 2vw, 1.1rem);">Please add up to 6 images to the "resources" folder.</p>
+                <p style="font-size: clamp(0.8rem, 1.8vw, 1rem); opacity: 0.8; margin-bottom: 10px;">Try naming them: 1.jpg, 2.png, image1.jpg, etc.</p>
+                <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); border: none; border-radius: 20px; color: white; cursor: pointer;">Refresh</button>
+            </div>`;
+        }
+
+
+        // --- CLONE-BASED DRAG AND DROP LOGIC (WORKING) ---
+
+        function createPicture(src, container) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'picture';
+            img.draggable = false;
+            
+            img.addEventListener('mousedown', handleDragStart);
+            img.addEventListener('touchstart', handleDragStart, { passive: false });
+            
+            // Ensure number is removed if a picture is added
+            const numberSpan = container.querySelector('.square-number');
+            if(numberSpan) numberSpan.style.display = 'none';
+
+            container.appendChild(img);
+        }
+        
+        function handleDragStart(e) {
+            e.preventDefault();
+            
+            originalElement = e.target;
+            const rect = originalElement.getBoundingClientRect();
+
+            dragClone = originalElement.cloneNode(true);
+            dragClone.classList.add('picture-clone');
+            document.body.appendChild(dragClone);
+
+            const eventX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const eventY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            
+            offsetX = eventX - rect.left;
+            offsetY = eventY - rect.top;
+
+            dragClone.style.left = `${eventX - offsetX}px`;
+            dragClone.style.top = `${eventY - offsetY}px`;
+            dragClone.style.width = `${rect.width}px`;
+            dragClone.style.height = `${rect.height}px`;
+
+            originalElement.classList.add('dragging-source');
+
+            if (e.type === 'touchstart') {
+                document.addEventListener('touchmove', handleDragMove, { passive: false });
+                document.addEventListener('touchend', handleDragEnd, { once: true });
+            } else {
+                document.addEventListener('mousemove', handleDragMove);
+                document.addEventListener('mouseup', handleDragEnd, { once: true });
+            }
+        }
+
+        function handleDragMove(e) {
+            if (!dragClone) return;
+            e.preventDefault();
+
+            const eventX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const eventY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+            dragClone.style.left = `${eventX - offsetX}px`;
+            dragClone.style.top = `${eventY - offsetY}px`;
+
+            dragClone.style.display = 'none';
+            const elementBelow = document.elementFromPoint(eventX, eventY);
+            dragClone.style.display = '';
+
+            const dropTarget = elementBelow ? elementBelow.closest('.grid-square') : null;
+
+            document.querySelectorAll('.grid-square').forEach(sq => {
+                sq.classList.toggle('drag-over', sq === dropTarget && dropTarget !== originalElement.parentElement);
+            });
+        }
+
+        function handleDragEnd(e) {
+            if (!originalElement) return;
+
+            const eventX = e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
+            const eventY = e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
+            
+            const dropTarget = document.elementFromPoint(eventX, eventY)?.closest('.grid-square');
+
+            if (dropTarget && dropTarget !== originalElement.parentElement) {
+                const targetPicture = dropTarget.querySelector('.picture');
+                const sourceSquare = originalElement.parentElement;
+                
+                if (targetPicture) {
+                    sourceSquare.appendChild(targetPicture);
+                }
+                dropTarget.appendChild(originalElement);
+            }
+            
+            cleanupDrag();
+        }
+
+        function cleanupDrag() {
+            if (dragClone) {
+                dragClone.remove();
+                dragClone = null;
+            }
+            if (originalElement) {
+                originalElement.classList.remove('dragging-source');
+                originalElement = null;
+            }
+            document.querySelectorAll('.grid-square.drag-over').forEach(sq => sq.classList.remove('drag-over'));
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+        }
+
+        function shufflePictures() {
+            const pictures = Array.from(document.querySelectorAll('.picture'));
+            const squares = Array.from(document.querySelectorAll('.grid-square'));
+            
+            pictures.forEach(p => p.remove());
+            const shuffled = pictures.sort(() => 0.5 - Math.random());
+            squares.forEach((square, index) => {
+                const numberSpan = square.querySelector('.square-number');
+                if (shuffled[index]) {
+                    square.appendChild(shuffled[index]);
+                    if(numberSpan) numberSpan.style.display = 'none';
+                } else {
+                     if(numberSpan) numberSpan.style.display = '';
+                }
+            });
+        }
+
+        // Initialize when page loads, calling the correct restored function
+        window.addEventListener('load', initializePictures);
+    </script>
+</body>
+</html>
