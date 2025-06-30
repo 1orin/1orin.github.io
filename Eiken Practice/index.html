@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yuma's Eiken 2 Interview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background shapes */
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .bg-shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+
+        .bg-shape:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .bg-shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            33% {
+                transform: translate(30px, -30px) rotate(120deg);
+            }
+            66% {
+                transform: translate(-20px, 20px) rotate(240deg);
+            }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            margin: 10px;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button.primary {
+            background: rgba(255, 255, 255, 0.3);
+            font-size: 1.2em;
+            padding: 18px 40px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-container.visible {
+            opacity: 1;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .stopwatch {
+            font-size: 3em;
+            font-weight: 300;
+            margin: 20px 0;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-counter {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .stopwatch {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shape"></div>
+    <div class="bg-shape"></div>
+    <div class="bg-shape"></div>
+    
+    <div class="container">
+        <h1>Practice Questions</h1>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="stopwatch" id="stopwatch">00:00</div>
+        
+        <button class="button primary" id="mainButton" onclick="handleMainButton()">
+            Ask me a practice question!
+        </button>
+        
+        <div id="controls" style="display: none;">
+            <button class="button" id="stopButton" onclick="stopStopwatch()">
+                Stop Timer
+            </button>
+            <button class="button" id="repeatButton" onclick="repeatQuestion()">
+                Same question again
+            </button>
+        </div>
+        
+        <div class="question-counter" id="counter"></div>
+    </div>
+
+    <script>
+        let currentQuestion = 0;
+        let totalQuestions = 11; // Adjust based on your actual number of questions
+        let playedQuestions = [];
+        let isFirstQuestion = true;
+        let stopwatchInterval;
+        let startTime;
+        let audio;
+        let isPlaying = false;
+
+        function handleMainButton() {
+            if (isFirstQuestion) {
+                playNextQuestion();
+                isFirstQuestion = false;
+            } else {
+                playNextQuestion();
+            }
+        }
+
+        function playNextQuestion() {
+            // If all questions have been played, reset
+            if (playedQuestions.length >= totalQuestions) {
+                playedQuestions = [];
+            }
+
+            // Find next unplayed question
+            let nextQuestion;
+            do {
+                nextQuestion = Math.floor(Math.random() * totalQuestions) + 1;
+            } while (playedQuestions.includes(nextQuestion) && playedQuestions.length < totalQuestions);
+
+            currentQuestion = nextQuestion;
+            playedQuestions.push(currentQuestion);
+            
+            playAudio(currentQuestion);
+            updateCounter();
+        }
+
+        function repeatQuestion() {
+            if (currentQuestion) {
+                playAudio(currentQuestion);
+            }
+        }
+
+        function playAudio(questionNumber) {
+            // Stop any currently playing audio
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+
+            // Reset UI
+            document.getElementById('mainButton').disabled = true;
+            document.getElementById('mainButton').textContent = 'Playing...';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('progressContainer').classList.add('visible');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('stopwatch').textContent = '00:00';
+            
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+            }
+
+            // Create and play audio
+            audio = new Audio(`./resources/${questionNumber}.mp3`);
+            isPlaying = true;
+
+            audio.addEventListener('loadedmetadata', () => {
+                const duration = audio.duration;
+                
+                // Update progress bar during playback
+                const progressInterval = setInterval(() => {
+                    if (audio && !audio.paused) {
+                        const progress = (audio.currentTime / duration) * 100;
+                        document.getElementById('progressBar').style.width = progress + '%';
+                    } else {
+                        clearInterval(progressInterval);
+                    }
+                }, 100);
+            });
+
+            audio.addEventListener('ended', () => {
+                isPlaying = false;
+                document.getElementById('progressContainer').classList.remove('visible');
+                startStopwatch();
+                document.getElementById('mainButton').disabled = false;
+                document.getElementById('mainButton').textContent = 'Ask me another question';
+                document.getElementById('controls').style.display = 'block';
+            });
+
+            audio.addEventListener('error', (e) => {
+                console.error('Error loading audio:', e);
+                alert(`Could not load audio file: ./resources/${questionNumber}.mp3`);
+                document.getElementById('mainButton').disabled = false;
+                document.getElementById('mainButton').textContent = 'Ask me another question';
+                document.getElementById('progressContainer').classList.remove('visible');
+                isPlaying = false;
+            });
+
+            audio.play().catch(e => {
+                console.error('Error playing audio:', e);
+                document.getElementById('mainButton').disabled = false;
+                document.getElementById('mainButton').textContent = 'Ask me another question';
+                document.getElementById('progressContainer').classList.remove('visible');
+                isPlaying = false;
+            });
+        }
+
+        function startStopwatch() {
+            startTime = Date.now();
+            stopwatchInterval = setInterval(updateStopwatch, 100);
+        }
+
+        function updateStopwatch() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('stopwatch').textContent = `${minutes}:${seconds}`;
+        }
+
+        function stopStopwatch() {
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+                stopwatchInterval = null;
+            }
+        }
+
+        function updateCounter() {
+            document.getElementById('counter').textContent = 
+                `Questions played: ${playedQuestions.length} / ${totalQuestions}`;
+        }
+
+        // Initialize
+        updateCounter();
+    </script>
+</body>
+</html>
